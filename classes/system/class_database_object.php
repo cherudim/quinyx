@@ -4,6 +4,7 @@
 		use Exception;
 		use Exceptions\DatabaseObjectException;
 		use System\Tools;
+		use DateTime;
 
 		abstract class DatabaseObject extends Properties {
 			const IdField = 'IdField';
@@ -42,7 +43,15 @@
 				$instance = new static();
 				foreach($instance->getTableColumns() as $property => $column) {
 					if(isset($data[$column])) {
-						$instance->$property = $data[$column];
+						if(static::getPropertyDefaultValue($property) == static::TimestampField) {
+							try {
+								$instance->$property = new DateTime($data[$column]);
+							} catch(Exception $e) {
+								$instance->$property = $data[$column];
+							}
+						} else {
+							$instance->$property = $data[$column];
+						}
 					}
 				}
 				return $instance;
@@ -55,6 +64,9 @@
 						continue;
 					}
 					$property = trim($property, '_');
+					/*if($property == 'Id') {
+						$property = 'id';
+					}*/
 					if($this->$property instanceof DatabaseObject) {
 						if(!in_array($this->$property, $stack)) {
 							$stack[] = $this->$property;
@@ -62,10 +74,16 @@
 						} else {
 							$array[$property] = $this->$property->Id;
 						}
+					} else if($this->$property instanceof DateTime) {
+						$array[$property] = $this->$property->getTimestamp();
 					} else if(is_object($this->$property)) {
 						$array[$property] = $this->$property;
 					} else {
-						$array[$property] = Tools::Utf8On($this->$property);
+						if($this->$property == $this->getPropertyDefaultValue('_' . $property)) {
+							$array[$property] = null;
+						} else {
+							$array[$property] = Tools::Utf8On($this->$property);
+						}
 					}
 				}
 				return $array;
@@ -128,12 +146,13 @@
 						}
 					}
 					if(is_null($this->Id)) {
-						if(DBO::Instance()->Execute(sprintf('INSERT INTO `%s` SET %s', $this->GetTableName(), implode(', ', $columns)), $values)) {
+						if(DBO::Instance()->Execute(sprintf('INSERT INTO `%s` SET %s;', $this->GetTableName(), implode(', ', $columns)), $values)) {
 							error_log('Insert, setting Id #' . DBO::Instance()->LastInsertId() . ' for instance of class ' . get_called_class());
 							$this->_Id = DBO::Instance()->LastInsertId();
 						}
 					} else {
-						DBO::Instance()->Execute(sprintf('UPDATE `%s` SET %s', $this->GetTableName(), implode(', ', $columns)), $values);
+						$values[':id'] = $this->Id;
+						DBO::Instance()->Execute(sprintf('UPDATE `%s` SET %s WHERE id = :id;', $this->GetTableName(), implode(', ', $columns)), $values);
 					}
 				} else {
 					error_log('No changes to save!' . print_r($this, true));

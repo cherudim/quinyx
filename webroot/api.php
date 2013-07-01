@@ -9,7 +9,7 @@
 
 	if(isset($_GET['uri'])) {
 		list($domain, $id) = explode('/', $_GET['uri']);
-		error_log('Domain: ' . $domain . ', ID: ' . $id);
+		error_log('Domain: ' . $domain . ', ID: ' . $id . ', from: ' . $_GET['uri']);
 		$className = 'API\\' . $domain;
 		if(class_exists($className)) {
 			$class = new $className;

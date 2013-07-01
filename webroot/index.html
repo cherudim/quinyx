@@ -44,6 +44,93 @@
 
 		<!-- Backbone templates start -->
 
+		<script type="text/template" id="units-template">
+			<table class="table table-condensed table-striped">
+				<thead>
+					<tr>
+						<th>Name
+						</th>
+						<th>Address
+						</th>
+						<th>Manager
+						</th>
+						<th>
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+				</tbody>
+			</table>
+			<button id="new" class="btn btn-success">Skapa ny</button>
+		</script>
+		<script type="text/template" id="units-row-template">
+			<td><a href="/#/units/<%=model.get('Id') %>"><%=model.get('Name') %></a>
+			</td>
+			<td><%=model.get('Address').Street %>, <%=model.get('Address').Zip %> <%=model.get('Address').City %>, <%=model.get('Address').Country %>
+			</td>
+			<td><% if(model.get('ChiefEmployee') instanceof Object) { %><a href="/#/employees/<%=model.get('ChiefEmployee').Id %>"><%=model.get('ChiefEmployee').Name %></a><% } else { %>-<% } %>
+			</td>
+			<td><span class="edit btn btn-mini btn-info">Edit</span> <span class="delete btn btn-mini btn-danger">Delete</span>
+			</td>
+		</script>
+		<script type="text/template" id="units-form">
+		<div class="modal">
+			<form class="form-horizontal">
+				<div class="modal-header">
+					<button type="button" class="close">&times;</button>
+					<h3>Unit management</h3>
+				</div>
+				<div class="modal-body">
+					<div class="control-group">
+						<label class="control-label">Name</label>
+						<div class="controls">
+							<input type="text" name="Name" value="<%=model.get('Name') %>" required />
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label">Street</label>
+						<div class="controls">
+							<input type="text" name="AddressStreet" value="<%=model.get('Address').Street %>" required />
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label">Zip &amp; City</label>
+						<div class="controls">
+							<input type="text" name="AddressZip" value="<%=model.get('Address').Zip %>" class="input-mini" required />
+							<input type="text" name="AddressCity" value="<%=model.get('Address').City %>" class="input-medium" required />
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label">Country</label>
+						<div class="controls">
+							<input type="text" name="AddressCountry" value="<%=model.get('Address').Country %>" required />
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label">Description</label>
+						<div class="controls">
+							<textarea name="description" required><%=model.get('StartAt') %></textarea>
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label">Unit Head</label>
+						<div class="controls">
+							<select name="ChiefEmployee" required>
+								<% _(employees.models).each(function(item) { %>
+								<option value="<%=item.get('Id') %>"><%=item.get('Name') %></option>
+								<% }); %>
+							</select>
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="submit" class="submit btn btn-success">
+						Save
+					</button>
+				</div>
+			</form>
+		</div>
+		</script>
 		<script type="text/template" id="employee-template">
 			<h1><%=model.get('Name') %></h1>
 		</script>
@@ -75,19 +162,19 @@
 			<button id="new" class="btn btn-success">Skapa ny</button>
 		</script>
 		<script type="text/template" id="employees-row-template">
-			<td><a href="/#/employees/<%=model.get('Id') %>"><%=model.get('Name') %>
+			<td><a href="/#/employees/<%=model.get('Id') %>"><%=model.get('Name') %></a>
 			</td>
 			<td><%=model.get('Address').Street %>, <%=model.get('Address').Zip %> <%=model.get('Address').City %>, <%=model.get('Address').Country %>
 			</td>
 			<td><% if(model.get('Unit') instanceof Object) { %><a href="/#/units/<%=model.get('Unit').Id %>"><%=model.get('Unit').Name %></a><% } else { %>-<% } %>
 			</td>
-			<td><%=model.get('StartAt') %> - <%=model.get('EndAt') %>
+			<td><%=model.getStartAt().toLocaleDateString() %> - <% if(model.get('EndAt') > 0) { %><%=model.getEndAt().toLocaleDateString() %><% } else { %>nuv.<% } %>
 			</td>
 			<td><%=model.get('Email') %>
 			</td>
 			<td><%=model.get('Phone') %>
 			</td>
-			<td><%=model.get('Age') %>
+			<td><%=model.getAge() %>
 			</td>
 			<td><span class="edit btn btn-mini btn-info">Edit</span> <span class="delete btn btn-mini btn-danger">Delete</span>
 			</td>
@@ -160,6 +247,9 @@
 						<div class="controls">
 							<select name="Unit" required>
 								<option value="">Ingen</option>
+								<% _(units.models).each(function(item) { %>
+								<option value="<%=item.get('Id') %>"><%=item.get('Name') %></option>
+								<% }); %>
 							</select>
 						</div>
 					</div>
