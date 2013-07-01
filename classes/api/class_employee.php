@@ -20,13 +20,29 @@
 			}
 
 			public function CollectionPost(stdClass $response) {
-				$data = json_decode(file_get_contents('php://input'), true);
-				error_log('Input' . print_r($data, true));
-
 				$instance = new \Employee();
+
+				if($this->updateEmployee($instance)) {
+					$response->code = 200;
+					$response->data = $instance->AsArray();
+				}
+			}
+
+			public function Put($id, stdClass $response) {
+				$instance = \Employee::GetById($id);
+
+				if($this->updateEmployee($instance)) {
+					$response->code = 200;
+					$response->data = $instance->AsArray();
+				}
+			}
+
+			protected function updateEmployee(\Employee $instance) {
+				$data = json_decode(file_get_contents('php://input'), true);
+
 				$instance->Name = $data['Name'];
 				try {
-					$address = Address::GetDuplicate($data['Street'], $data['Zip'], $data['City'], $data['Country']);
+					$address = Address::GetDuplicate($data['Address']['Street'], $data['Address']['Zip'], $data['Address']['City'], $data['Address']['Country']);
 				} catch(Exception $e) {
 					$address = new Address();
 					$address->Street = $data['Address']['Street'];
@@ -36,18 +52,32 @@
 				}
 				$instance->Address = $address;
 				$instance->StartAt = new DateTime($data['StartAt']);
-				if(isset($data['EndAt'])) {
+				if(isset($data['EndAt']) && $data['EndAt']) {
 					$instance->EndAt = new DateTime($data['EndAt']);
+				} else {
+					$instance->EndAt = null;
 				}
 				$instance->Email = $data['Email'];
 				$instance->Phone = $data['Phone'];
+				$instance->BornAt = new DateTime($data['BornAt']);
 				if(isset($data['Unit'])) {
-					$instance->Unit = Unit::GetById($data['Unit']);
+					try {
+						$instance->Unit = Unit::GetById($data['Unit']);
+					} catch(Exception $e) {
+						$instance->Unit = null;
+					}
 				}
-				error_log(print_r($instance, true));
 				if($instance->Commit()) {
+					return true;
+				}
+				return false;
+			}
+
+			public function Delete($id, stdClass $response) {
+				$instance = \Employee::GetById($id);
+				if($instance->Delete()) {
 					$response->code = 200;
-					$resposne->data = $instance;
+					$response->data = $instance->AsArray();
 				}
 			}
 		}

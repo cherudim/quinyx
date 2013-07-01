@@ -117,7 +117,6 @@
 			e.preventDefault();
 			employee = new Employee();
 			var values = this.getFormData();
-			console.log(values);
 			employee.set({
 				'Name': values.Name,
 				'Address': {
@@ -130,11 +129,14 @@
 				'EndAt': values.EndAt,
 				'Email': values.Email,
 				'Phone': values.Phone,
+				'BornAt': values.BornAt,
 				'Unit': values.Unit
 			});
+			var self = this;
 			employee.save({
 				success: function(item) {
 					employeesCollection.add(employee);
+					self.unrender();
 				},
 				error: function(item) {
 					console.log('Failure : (');
@@ -165,7 +167,7 @@
 		},
 		newEmployeeForm: function() {
 			var formView = new EmployeeFormView({
-				model: new Employee()
+				model: new Employee(),
 			});
 			$('body').append(formView.render().el);
 		},

@@ -3,6 +3,7 @@
 	namespace System {
 		use Exception;
 		use Exceptions\DatabaseObjectException;
+		use System\Tools;
 
 		abstract class DatabaseObject extends Properties {
 			const IdField = 'IdField';
@@ -40,7 +41,6 @@
 			public static function LoadInstanceFromArray($data) {
 				$instance = new static();
 				foreach($instance->getTableColumns() as $property => $column) {
-					error_log($property . ' = ' . $column);
 					if(isset($data[$column])) {
 						$instance->$property = $data[$column];
 					}
@@ -62,8 +62,10 @@
 						} else {
 							$array[$property] = $this->$property->Id;
 						}
+					} else if(is_object($this->$property)) {
+						$array[$property] = $this->$property;
 					} else {
-						$array[$property] = utf8_encode($this->$property);
+						$array[$property] = Tools::Utf8On($this->$property);
 					}
 				}
 				return $array;
@@ -88,6 +90,97 @@
 					throw new DatabaseObjectException(get_called_class(), $matches[1], $value);
 				}
 				throw new Exception(get_called_class() . '::' . $method . ' does not exist or is inaccessible!');
+			}
+
+			public function Commit(&$stack = array()) {
+				return $this->dbCommit($stack);
+			}
+
+			protected function dbCommit(&$stack = array()) {
+				error_log('dbCommit ' . get_called_class());
+				if(in_array($this, $stack)) {
+					error_log('In stack, exiting! ' . count($stack));
+					return $this;
+				}
+
+				$stack[] = $this;
+
+				error_log('Pre ObjectProperties: ' . count($this->ObjectProperties));
+
+				foreach($this->ObjectProperties as $property) {
+					$this->$property->Commit($stack);
+				}
+
+				error_log('Post ObjectProperties');
+
+				if(count($this->changes) > 0) {
+					$values = array();
+					$columns = array();
+					foreach($this->changes as $property => $b) {
+						if($this->IsTableProperty($property)) {
+							$column = $this->GetColumnByProperty($property);
+							if($this->getPropertyDefaultValue($property) == static::TimestampField && $this->$property == static::CurrentTime) {
+								$columns[$column] = '`' . $column . '` = CURRENT_TIMESTAMP()';
+							} else {
+								$columns[$column] = '`' . $column . '` = :' . $column;
+								$values[':' . $column] = $this->$property;
+							}
+						}
+					}
+					if(is_null($this->Id)) {
+						if(DBO::Instance()->Execute(sprintf('INSERT INTO `%s` SET %s', $this->GetTableName(), implode(', ', $columns)), $values)) {
+							error_log('Insert, setting Id #' . DBO::Instance()->LastInsertId() . ' for instance of class ' . get_called_class());
+							$this->_Id = DBO::Instance()->LastInsertId();
+						}
+					} else {
+						DBO::Instance()->Execute(sprintf('UPDATE `%s` SET %s', $this->GetTableName(), implode(', ', $columns)), $values);
+					}
+				} else {
+					error_log('No changes to save!' . print_r($this, true));
+				}
+
+				error_log('Pre CollectionProperties: ' . count($this->CollectionProperties));
+
+				foreach($this->CollectionProperties as $property) {
+					$this->$property->Commit($stack);
+				}
+
+				error_log('Post CollectionProperties');
+
+				return $this;
+			}
+
+			public function Delete() {
+				return $this->dbDelete();
+			}
+
+			protected function dbDelete() {
+				if(!is_null($this->Id)) {
+					if(DBO::Instance()->Execute(sprintf('DELETE FROM `%s` WHERE id = :id', static::GetTableName()), array(':id' => $this->Id))) {
+						return $this;
+					}
+				}
+				throw new Exception('Unable to delete this entry. Check that the object has a valid Id.');
+			}
+
+			protected function getObjectProperties() {
+				$array = array();
+				foreach(get_class_vars(get_called_class()) as $property => $value) {
+					if($this->$property instanceof DatabaseObject) {
+						$array[] = $property;
+					}
+				}
+				return $array;
+			}
+
+			protected function getCollectionProperties() {
+				$array = array();
+				foreach(get_class_vars(get_called_class()) as $property => $value) {
+					if($this->$property instanceof Collection) {
+						$array[] = $property;
+					}
+				}
+				return $array;
 			}
 		}
 	}

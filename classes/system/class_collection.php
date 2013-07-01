@@ -8,9 +8,9 @@
 		use Exceptions\DatabaseObjectException;
 
 		class Collection implements Iterator, Countable, ArrayAccess {
-			protected $array;
-			protected $added;
-			protected $removed;
+			protected $array = array();
+			protected $added = array();
+			protected $removed = array();
 
 			protected static function getContainedClass() {
 				$collection = get_called_class();
@@ -103,6 +103,17 @@
 					}
 				}
 				return false;
+			}
+
+			public function Commit(&$stack = array()) {
+				return $this->dbCommit($stack);
+			}
+
+			protected function dbCommit(&$stack = array()) {
+				foreach($this as $item) {
+					$item->Commit($stack);
+				}
+				return $this;
 			}
 
 			// ArrayAccess

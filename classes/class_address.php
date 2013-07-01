@@ -2,6 +2,7 @@
 
 	use System\DatabaseObject;
 	use System\DBO;
+	use System\ObjectCache;
 
 	class Address extends DatabaseObject {
 		protected $_Street;
