@@ -36,6 +36,11 @@
 				}
 			}
 
+			/**
+			 * Sets the received data to the provided Unit instance.
+			 * @param Unit $instance Unit instance to be updated.
+			 */
+
 			protected function updateUnit(\Unit $instance) {
 				$data = json_decode(file_get_contents('php://input'), true);
 

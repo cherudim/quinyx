@@ -33,6 +33,11 @@
 				return method_exists(get_called_class(), $key);
 			}
 
+			/**
+			 * Magic method for getting the value of an unaccessible or non-existing property. Used to get data through the getVariable-methodes defined in the model, mostly for loading an instance of an object from an Id value.
+			 * @throws PropertyException Exception if the property does not exist.
+			 */
+
 			public function __get($var) {
 				$var = ucfirst($var);
 				if($this->hasMethod('get' . $var)) {
@@ -44,6 +49,11 @@
 				}
 				throw new PropertyException(get_called_class(), $var);
 			}
+
+			/**
+			 * Magic method when setting a property that does not exist or is unaccessible. Used to set internal variables, optinally through the setVariable-methods defined in the models to be able to validate the inputted data, and store what changes where made.
+			 * @throws PropertyException Exception if the property does not exist.
+			 */
 
 			public function __set($var, $value) {
 				$var = ucfirst($var);

@@ -37,6 +37,11 @@
 				}
 			}
 
+			/**
+			 * Sets the received data to the provided Employee instance.
+			 * @param Employee $instance Employee instance to be updated.
+			 */
+
 			protected function updateEmployee(\Employee $instance) {
 				$data = json_decode(file_get_contents('php://input'), true);
 

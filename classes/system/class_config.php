@@ -38,12 +38,21 @@
 				}
 			}
 
+			/**
+			 * Singleton operator, to avoid unnescessairy extra instances of this class.
+			 * @return static An instance of this class.
+			 */
+
 			public static function Instance() {
 				if(!(static::$instance instanceof static)) {
 					static::$instance = new static();
 				}
 				return static::$instance;
 			}
+
+			/**
+			 * Fetches the requested Config group, or an empty one of it isn't in the config file.
+			 */
 
 			public function __get($value) {
 				$value = strtolower($value);

@@ -11,6 +11,11 @@
 
 			protected static $instance;
 
+			/**
+			 * Singleton operator, to avoid unnescessairy extra instances of this class.
+			 * @return static An instance of this class.
+			 */
+
 			public static function Instance() {
 				if(!(static::$instance instanceof static)) {
 					static::$instance = new static();
@@ -21,6 +26,13 @@
 			public function __construct() {
 				$this->connection = new PDO('mysql:host=' . Config::Instance()->db->host . ';dbname=' . Config::Instance()->db->database, Config::Instance()->db->user, Config::Instance()->db->password);
 			}
+
+			/**
+			 * Parses the provided values, and modifies the query if needed. Provides the posiblity to do "IN (:ids)" with :ids as an array in PDO, something that is not natively possible. Also converts DatabaseObjects to Id's, and DateTime-objects to database-compatible formats.
+			 * @param string $query The query to be run.
+			 * @param array $args An array containing the arguments for the query.
+			 * @return string The possibly modified query.
+			 */
 
 			protected function parseArgs($query, &$args) {
 				foreach($args as $id => $arg) {
@@ -56,6 +68,14 @@
 				return $query;
 			}
 
+			/**
+			 * Runs a query against the database
+			 * @param string $query The query to be run.
+			 * @param array $args An array containing the arguments for the query.
+			 * @return PDOStatement A PDOStatement containing the results of the query.
+			 * @throws DBOException Throws this if the query failed in any way. Contains details about the error.
+			 */
+
 			public function Execute($query, $args = array()) {
 				if($query instanceof PDOStatement) {
 					$stmt = $query;
@@ -71,6 +91,11 @@
 				throw new DBOException($stmt, $args);
 			}
 			
+			/**
+			 * Fetches the inserted Id of the last insert query run.
+			 * @return int The Id.
+			 */
+
 			public function LastInsertId() {
 				return $this->connection->lastInsertId();
 			}

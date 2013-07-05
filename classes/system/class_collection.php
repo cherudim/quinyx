@@ -12,6 +12,12 @@
 			protected $added = array();
 			protected $removed = array();
 
+			/**
+			 * Fetches the class name for the model contained in this collection.
+			 * @return string The class name.
+			 * @throws Exception Thrown if the Collection name can't be resolved to an existing class.
+			 */
+
 			protected static function getContainedClass() {
 				$collection = get_called_class();
 				$class = str_replace('Collection', '', get_called_class());
@@ -20,6 +26,13 @@
 				}
 				return $class;
 			}
+
+			/**
+			 * Magic method for loading a collection of the object based on a column and a value. Matches calls like GetByVariable, taking the part after GetBy as a property, checks if the property exists, and takes the first argument as the value to search for.
+			 * @return static A collection containing model-instances of all matches, loaded with data.
+			 * @throws DatabaseObjectException Throws this if the entry was not found in the database.
+			 * @throws Exception Throws this if the property was not found in the called class.
+			 */
 
 			public static function __callStatic($method, $args) {
 				$matches = array();
@@ -45,6 +58,11 @@
 				throw new Exception(get_called_class() . '::' . $method . ' does not exist or is inaccessible!');
 			}
 
+			/**
+			 * Loads a collection with all instances in the database.
+			 * @return static A collection containing model-instances of all entries, loaded with data.
+			 */
+
 			public static function GetAll() {
 				$class = static::getContainedClass();
 				$collection = new static();
@@ -60,6 +78,11 @@
 				return $collection;
 			}
 
+			/**
+			 * Recursive method to get the collection's objects and thier subobjects as an array, for outputting through the API.
+			 * @return array Multi-dimensional array representing the collection and it's object.
+			 */
+
 			public function AsArray() {
 				$array = array();
 				foreach($this as $item) {
@@ -67,6 +90,11 @@
 				}
 				return $array;
 			}
+
+			/**
+			 * Adds an instance to the Collection.
+			 * @throws Exception Thrown if the instance already exists in the collection
+			 */
 
 			public function Add(DatabaseObject $object, $change = true) {
 				if($this->Exists($object) !== false) {
@@ -77,6 +105,11 @@
 					$this->added[] = $object;
 				}
 			}
+
+			/**
+			 * Removes an instance from the Collection.
+			 * @throws Exception Thrown if the instance was not found in the Collection.
+			 */
 					
 			public function Remove(DatabaseObject $object) {
 				$key = $this->Exists($object);
@@ -88,6 +121,10 @@
 				throw new \Exception("Objektet hittades inte!");
 			}
 
+			/**
+			 * Empties the collection
+			 */
+
 			public function Clear() {
 				foreach($this->array as $key => $value) {
 					$this->removed = $this->array[$key];
@@ -95,6 +132,11 @@
 				}
 				return $this;
 			}
+
+			/**
+			 * Checks if the instance exists in the Collection.
+			 * @return mixed The index of the instance if found, otherwise bool false.
+			 */
 			
 			public function Exists(DatabaseObject $object) {
 				foreach($this->array as $index => $item) {
@@ -105,9 +147,21 @@
 				return false;
 			}
 
+			/**
+			 * Method to start saving the collection to the database
+			 * @param array An array containing all objects that are being saved in this commit-chain. Used to avoid circular references creating infinite loops. Created autmagically when Commit is called from the code.
+			 * @return static The collection, for chaining.
+			 */
+
 			public function Commit(&$stack = array()) {
 				return $this->dbCommit($stack);
 			}
+
+			/**
+			 * Method to actually save the collection.
+			 * @param array An array containing all objects that are being saved in this commit-chain. Used to avoid circular references creating infinite loops.
+			 * @return static The collection, for chaining.
+			 */
 
 			protected function dbCommit(&$stack = array()) {
 				foreach($this as $item) {
