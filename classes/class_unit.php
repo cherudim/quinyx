@@ -8,6 +8,8 @@
 		protected $_Description;
 		protected $_ChiefEmployee = self::IdField;
 
+		protected $employees;
+
 		protected function getAddress() {
 			if(!($this->_Address instanceof Address)) {
 				$this->_Address = Address::GetById($this->_Address);
@@ -20,6 +22,13 @@
 				$this->_ChiefEmployee = Employee::GetById($this->_ChiefEmployee);
 			}
 			return $this->_ChiefEmployee;
+		}
+
+		protected function getEmployees() {
+			if(!($this->employees instanceof EmployeeCollection)) {
+				$this->employees = EmployeeCollection::GetByUnit($this);
+			}
+			return $this->employees;
 		}
 
 		protected function setAddress(Address $address) {
