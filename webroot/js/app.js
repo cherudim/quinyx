@@ -1,25 +1,7 @@
 (function($) {
-	/*Backbone.sync = function(method, model, options) {
-		var type = "GET";
-		if(method == "create") { // post
-			type = "POST";
-		} else if(method == "update") { // put
-			type = "PUT";
-		} else if(method == "delete") { // delete
-			type = "DELETE";
-		}
-		$.ajax({
-			type: type,
-			url: model.urlRoot + (model.get('id') ? '&id=' + model.get('id') : ''),
-			data: model,
-			success: function(data, status, xhr) {
-				options.success(data.data, status, xhr);
-			},
-			error: function(data, status, xhr) {
-				options.error(data, status, xhr);
-			}
-		});
-	};*/
+	function formatDate(date) {
+		return date.getFullYear() + "-" + (date.getMonth() > 9 ? date.getMonth() : '0' + date.getMonth()) + "-" + (date.getDate() > 9 ? date.getDate() : '0' + date.getDate());
+	}
 
 	var Unit = Backbone.Model.extend({
 		urlRoot: '/api.php?uri=unit',
@@ -30,6 +12,12 @@
 			"Name": "",
 			"Description": "",
 			"ChiefEmployee": {}
+		},
+		getEmployees: function() {
+
+		},
+		hasChiefEmployee: function() {
+			return (this.get('ChiefEmployee') instanceof Object);
 		}
 	});
 
@@ -50,17 +38,31 @@
 		getStartAt: function() {
 			return new Date(this.get('StartAt') * 1000);
 		},
+		getStartAtFormatted: function() {
+			var date = this.getStartAt();
+			return formatDate(date);
+		},
 		getEndAt: function() {
 			return new Date(this.get('EndAt') * 1000);
+		},
+		getEndAtFormatted: function() {
+			var date = this.getEndAt();
+			return formatDate(date);
 		},
 		getBornAt: function() {
 			return new Date(this.get('BornAt') * 1000);
 		},
+		getBornAtFormatted: function() {
+			var date = this.getBornAt();
+			return formatDate(date);
+		},
 		getAge: function() {
 			var now = new Date();
 			var then = this.getBornAt();
-			console.log(now.getFullYear() + ' - ' + then.getFullYear());
 			return Math.floor(now.getFullYear() - then.getFullYear());
+		},
+		hasUnit: function() {
+			return (this.get('Unit') instanceof Object);
 		}
 	});
 
@@ -68,7 +70,11 @@
 		model: Employee,
 		url: '/api.php?uri=employee',
 		initialize: function() {
-			this.fetch();
+			this.fetch({wait: true});
+		},
+		getSubsetByUnit: function(unit) {
+			var subset = new Employees();
+			
 		}
 	});
 
@@ -76,7 +82,7 @@
 		model: Unit,
 		url: '/api.php?uri=unit',
 		initialize: function() {
-			this.fetch();
+			this.fetch({wait: true});
 		}
 	});
 
@@ -87,12 +93,14 @@
 			'click .delete': 'remove'
 		},
 		initialize: function() {
-			_.bindAll(this, 'render', 'unrender', 'remove', 'edit');
+			//_.bindAll(this, 'render', 'unrender', 'remove', 'edit');
 
-			this.model.bind('change', this.render);
+			this.model.bind('sync', this.render);
 			this.model.bind('remove', this.unrender);
 		},
 		render: function() {
+			console.log('Model (render):');
+			console.log(this.model);
 			var tpl = _.template($('#employees-row-template').html(), {model: this.model});
 			this.$el.html(tpl);
 			return this;
@@ -118,8 +126,9 @@
 			'click button.submit': 'saveEmployee'
 		},
 		initialize: function() {
-			_.bindAll(this, 'render', 'unrender', 'saveEmployee');
+			//_.bindAll(this, 'render', 'unrender', 'saveEmployee');
 			if(!(this.model instanceof Employee)) {
+				console.log('Creating new');
 				this.model = new Employee();
 			}
 		},
@@ -141,8 +150,8 @@
 		},
 		saveEmployee: function(e) {
 			e.preventDefault();
-			this.model;
 			var values = this.getFormData();
+			console.log(values);
 			this.model.set({
 				'Name': values.Name,
 				'Address': {
@@ -166,6 +175,7 @@
 					console.log('Success!');
 					console.log(item);
 					if(isNew) {
+						console.log('Adding!');
 						employeeCollection.add(item);
 					}
 					self.unrender();
@@ -184,9 +194,9 @@
 			'click .delete': 'remove'
 		},
 		initialize: function() {
-			_.bindAll(this, 'render', 'unrender', 'remove', 'edit');
+			//_.bindAll(this, 'render', 'unrender', 'remove', 'edit');
 
-			this.model.bind('change', this.render);
+			this.model.bind('sync', this.render);
 			this.model.bind('remove', this.unrender);
 		},
 		render: function() {
@@ -215,7 +225,7 @@
 			'click button.submit': 'saveUnit'
 		},
 		initialize: function() {
-			_.bindAll(this, 'render', 'unrender', 'saveUnit');
+			//_.bindAll(this, 'render', 'unrender', 'saveUnit');
 			if(!(this.model instanceof Unit)) {
 				this.model = new Unit();
 			}
@@ -238,7 +248,6 @@
 		},
 		saveUnit: function(e) {
 			e.preventDefault();
-			this.model;
 			var values = this.getFormData();
 			this.model.set({
 				'Name': values.Name,
@@ -270,20 +279,49 @@
 		}
 	});
 
+	var EmployeeFilterView = Backbone.View.extend({
+		tagName: 'div',
+		initialize: function() {
+			this.model.bind('add', this.appendItem);
+		},
+		render: function() {
+			var self = this;
+			_(this.model.models).each(function(item) {
+				self.appendItem(item);
+			}, this);
+
+			return this;
+		},
+		unrender: function() {
+			$(this.el).remove();
+		},
+		appendItem: function(item) {
+			var tpl = _.template($('#employee-filter-template').html(), {model: item});
+			this.$el.append(tpl);
+		}
+	});
+
 	var EmployeesView = Backbone.View.extend({
 		el: $('#content'),
 		events: {
-			'click button#new': 'newEmployeeForm'
+			'click button#new': 'newEmployeeForm',
+			'click .btn-filter': 'filterList',
 		},
 		initialize: function() {
-			_.bindAll(this, 'render', 'newEmployeeForm');
+			//_.bindAll(this, 'render', 'newEmployeeForm');
+
+			this.filter = new EmployeeFilterView({
+				model: unitCollection
+			});
 
 			this.model.bind('add', this.appendItem);
 		},
 		render: function() {
 			var self = this;
-			var tpl = _.template($('#employees-template').html());
+			var tpl = _.template($('#employees-template').html(), {units: unitCollection});
 			this.$el.html(tpl);
+
+			this.$el.prepend(this.filter.render().el);
 			_(this.model.models).each(function(item) {
 				self.appendItem(item);
 			}, this);
@@ -302,6 +340,9 @@
 		},
 		notify: function(data) {
 
+		},
+		filterList: function() {
+			$(this).toggleClass('btn-success');
 		}
 	});
 
@@ -316,13 +357,24 @@
 		}
 	});
 
+	var UnitView = Backbone.View.extend({
+		el: $('#content'),
+		initialize: function() {
+			_.bindAll(this, 'render');
+		},
+		render: function() {
+			var tpl = _.template($('#unit-template').html(), {model: this.model});
+			this.$el.html(tpl);
+		}
+	});
+
 	var UnitsView = Backbone.View.extend({
 		el: $('#content'),
 		events: {
 			'click button#new': 'newUnitForm'
 		},
 		initialize: function() {
-			_.bindAll(this, 'render', 'newUnitForm');
+			//_.bindAll(this, 'render', 'newUnitForm');
 
 			this.model.bind('add', this.appendItem);
 		},
@@ -351,8 +403,8 @@
 		}
 	});
 
-	employeeCollection = new Employees();
 	unitCollection = new Units();
+	employeeCollection = new Employees();
 
 	var Router = Backbone.Router.extend({
 		routes: {
@@ -389,13 +441,24 @@
 			});
 			this.render(unitsView);
 		},
-		getUnit: function() {
-
+		getUnit: function(id) {
+			var unit = new Unit({Id: id});
+			var self = this;
+			unit.fetch({
+				success: function(item) {
+					var employeeView = new UnitView({
+						model: unit
+					});
+					self.render(employeeView);
+				}, 
+				error: function(item) {
+					this.navigate("/units", true);
+				}
+			});
 		},
 		render: function(view) {
 			if(this.currentView) {
-				this.currentView.remove();
-				this.currentView.unbind();
+				this.currentView.undelegateEvents();
 			}
 
 			view.render();

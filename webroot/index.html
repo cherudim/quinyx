@@ -44,6 +44,9 @@
 
 		<!-- Backbone templates start -->
 
+		<script type="text/template" id="unit-template">
+			<h1><%=model.get('Name') %></h1>
+		</script>
 		<script type="text/template" id="units-template">
 			<table class="table table-condensed table-striped">
 				<thead>
@@ -68,7 +71,7 @@
 			</td>
 			<td><%=model.get('Address').Street %>, <%=model.get('Address').Zip %> <%=model.get('Address').City %>, <%=model.get('Address').Country %>
 			</td>
-			<td><% if(model.get('ChiefEmployee') instanceof Object) { %><a href="/#/employees/<%=model.get('ChiefEmployee').Id %>"><%=model.get('ChiefEmployee').Name %></a><% } else { %>-<% } %>
+			<td><% if(model.hasChiefEmployee()) { %><a href="/#/employees/<%=model.get('ChiefEmployee').Id %>"><%=model.get('ChiefEmployee').Name %></a><% } else { %>-<% } %>
 			</td>
 			<td><span class="edit btn btn-mini btn-info">Edit</span> <span class="delete btn btn-mini btn-danger">Delete</span>
 			</td>
@@ -117,7 +120,7 @@
 						<div class="controls">
 							<select name="ChiefEmployee" required>
 								<% _(employees.models).each(function(item) { %>
-								<option value="<%=item.get('Id') %>"><%=item.get('Name') %></option>
+								<option value="<%=item.get('Id') %>"<% if(model.hasChiefEmployee() && model.get('ChiefEmployee').Id == item.get('Id')) { %> selected<% } %>><%=item.get('Name') %></option>
 								<% }); %>
 							</select>
 						</div>
@@ -133,6 +136,9 @@
 		</script>
 		<script type="text/template" id="employee-template">
 			<h1><%=model.get('Name') %></h1>
+		</script>
+		<script type="text/template" id="employee-filter-template">
+			<span data-unit="<%=model.get('Id') %>" class="btn btn-filter"><%=model.get('Name') %></span>
 		</script>
 		<script type="text/template" id="employees-template">
 			<table class="table table-condensed table-striped">
@@ -215,13 +221,13 @@
 					<div class="control-group">
 						<label class="control-label">Employed at</label>
 						<div class="controls">
-							<input type="date" name="StartAt" value="<%=model.get('StartAt') %>" required />
+							<input type="date" name="StartAt" value="<%=model.getStartAtFormatted() %>" required />
 						</div>
 					</div>
 					<div class="control-group">
 						<label class="control-label">Employed until</label>
 						<div class="controls">
-							<input type="date" name="EndAt" value="<%=model.get('EndAt') %>" />
+							<input type="date" name="EndAt" value="<%=model.getEndAtFormatted() %>" />
 						</div>
 					</div>
 					<div class="control-group">
@@ -239,7 +245,7 @@
 					<div class="control-group">
 						<label class="control-label">Born</label>
 						<div class="controls">
-							<input type="date" name="BornAt" value="<%=model.get('BornAt') %>" required />
+							<input type="date" name="BornAt" value="<%=model.getBornAtFormatted() %>" required />
 						</div>
 					</div>
 					<div class="control-group">
@@ -248,7 +254,7 @@
 							<select name="Unit" required>
 								<option value="">Ingen</option>
 								<% _(units.models).each(function(item) { %>
-								<option value="<%=item.get('Id') %>"><%=item.get('Name') %></option>
+								<option value="<%=item.get('Id') %>"<% if(model.get('Unit') instanceof Object && model.get('Unit').Id == item.get('Id')) { %> selected<% } %>><%=item.get('Name') %></option>
 								<% }); %>
 							</select>
 						</div>

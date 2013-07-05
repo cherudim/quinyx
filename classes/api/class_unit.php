@@ -5,6 +5,7 @@
 		use UnitCollection;
 		use Employee;
 		use Address;
+		use Exception;
 
 		class Unit extends Base {
 			public function Get($id, stdClass $response) {
